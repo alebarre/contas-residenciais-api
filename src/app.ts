@@ -14,7 +14,7 @@ import { authRoutes } from './auth/auth.route';
 import { meRoutes } from './me/me.route';
 import { bankRoutes } from './banks/banks.routes';
 import { itemRoutes } from './items/item.routes';
-
+import { expenseRoutes } from './expenses/expense.routes';
 
 
 export function buildApp(): FastifyInstance {
@@ -47,6 +47,9 @@ export function buildApp(): FastifyInstance {
   app.register(bankRoutes, { prefix: '/api' });
 
   app.register(itemRoutes, { prefix: '/api' });
+
+  app.register(expenseRoutes, { prefix: '/api' });
+
 
 
   return app;
