@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  nome         String
+  email        String   @unique
+  passwordHash String
+  telefone     String?
+  avatarUrl    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  items        Item[]
+  expenses     Expense[]
+  bankOverrides BankOverride[]
+}
+
+model Item {
+  id        String   @id @default(uuid())
+  userId    String
+  tipo      String
+  nome      String
+  atividade String
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expenses  Expense[]
+
+  @@index([userId])
+  @@index([userId, ativo])
+}
+
+model Expense {
+  id             String   @id @default(uuid())
+  userId         String
+  itemId         String
+  dataVencimento DateTime
+  dataPagamento  DateTime?
+  descricao      String
+  bancoCode      Int?
+  valorCents     Int
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item           Item     @relation(fields: [itemId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([userId, dataVencimento])
+  @@index([itemId])
+}
+
+model BankOverride {
+  id        String   @id @default(uuid())
+  userId    String
+  code      Int
+  inactive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, code])
+}
+
+model BankCatalogCache {
+  id        Int      @id @default(1)
+  updatedAt DateTime
+  dataJson  Json
+}

@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16
+    container_name: contas_residenciais_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: contas_residenciais
+    ports:
+      - "5432:5432"
+    volumes:
+      - contas_residenciais_pg:/var/lib/postgresql/data
+
+volumes:
+  contas_residenciais_pg:
