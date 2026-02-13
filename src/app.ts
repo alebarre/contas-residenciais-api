@@ -12,6 +12,8 @@ import { registerErrorHandler } from './plugins/error-handler';
 
 import { authRoutes } from './auth/auth.route';
 import { meRoutes } from './me/me.route';
+import { bankRoutes } from './banks/banks.routes';
+import { itemRoutes } from './items/item.routes';
 
 
 
@@ -41,6 +43,10 @@ export function buildApp(): FastifyInstance {
   app.register(authRoutes, { prefix: '/api' });
 
   app.register(meRoutes, { prefix: '/api' });
+
+  app.register(bankRoutes, { prefix: '/api' });
+
+  app.register(itemRoutes, { prefix: '/api' });
 
 
   return app;
