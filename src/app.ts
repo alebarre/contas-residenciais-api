@@ -2,7 +2,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import helmet from '@fastify/helmet';
 import sensible from '@fastify/sensible';
 import swagger from '@fastify/swagger';
-import swaggerUI from '@fastify/swagger-ui';
+import swaggerUI from '@fastify/swagger-ui'; 
 
 import { env } from './env';
 import { registerCors } from './plugins/cors';
@@ -15,6 +15,7 @@ import { meRoutes } from './me/me.route';
 import { bankRoutes } from './banks/banks.routes';
 import { itemRoutes } from './items/item.routes';
 import { expenseRoutes } from './expenses/expense.routes';
+import { dashboardRoutes } from './dashboard/dashboard.route';
 
 
 export function buildApp(): FastifyInstance {
@@ -49,6 +50,8 @@ export function buildApp(): FastifyInstance {
   app.register(itemRoutes, { prefix: '/api' });
 
   app.register(expenseRoutes, { prefix: '/api' });
+
+  app.register(dashboardRoutes, { prefix: '/api' });
 
 
 
