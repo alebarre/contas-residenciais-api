@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const itemTipoSchema = z.enum(['EMPRESA', 'PROFISSIONAL', 'SERVICO']);
+export const itemTipoSchema = z.enum(['EMPRESA', 'PROFISSIONAL', 'SERVICO', 'DESPESA']);
 
 export const createItemSchema = z.object({
   tipo: itemTipoSchema,

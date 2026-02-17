@@ -1,5 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { prisma } from '../db';
+import { AppError } from '../errors/app-error';
 import { requireAuth } from '../auth/require-auth';
 
 import {
@@ -20,6 +22,8 @@ const idParamSchema = z.object({
   id: z.string().uuid()
 });
 
+const idSchema = z.string().uuid();
+
 export async function itemRoutes(app: FastifyInstance) {
   // GET /api/items?onlyActive=false&tipo=SERVICO
   app.get('/items', async (req) => {
@@ -30,7 +34,7 @@ export async function itemRoutes(app: FastifyInstance) {
 
     // valida "tipo" se veio, reaproveitando enum por segurança
     const tipo = query.tipo?.toUpperCase();
-    if (tipo && !['EMPRESA', 'PROFISSIONAL', 'SERVICO'].includes(tipo)) {
+    if (tipo && !['EMPRESA', 'PROFISSIONAL', 'SERVICO', 'DESPESA'].includes(tipo)) {
       // deixa cair no handler padrão com fieldErrors
       throw new (await import('zod')).ZodError([
         {
@@ -66,40 +70,69 @@ export async function itemRoutes(app: FastifyInstance) {
     return reply.code(201).send(item);
   });
 
+  const idSchema = z.string().uuid();
+
   // PATCH /api/items/:id
-  app.patch('/items/:id', async (req) => {
+  app.patch("/items/:id/activate", async (req, reply) => {
     requireAuth(req);
 
-    const params = idParamSchema.parse(req.params);
-    const body = updateItemSchema.parse(req.body);
-    const userId = req.user!.id;
+    const itemId = idSchema.parse((req.params as any).id);
 
-    const item = await updateItem({
-      userId,
-      id: params.id,
-      data: body
+    const item = await prisma.item.findUnique({ where: { id: itemId } });
+    if (!item) {
+      throw new AppError({
+        status: 404,
+        code: "ITEM_NOT_FOUND",
+        error: "NOT_FOUND",
+        message: "Item não encontrado.",
+      });
+    }
+
+    const updated = await prisma.item.update({
+      where: { id: itemId },
+      data: { ativo: true },
     });
 
-    return item;
+    return reply.send(updated);
   });
 
-  // PATCH /api/items/:id/activate
-  app.patch('/items/:id/activate', async (req) => {
+  // PATCH /api/items/:id
+  app.patch("/items/:id/deactivate", async (req, reply) => {
     requireAuth(req);
 
-    const params = idParamSchema.parse(req.params);
-    const userId = req.user!.id;
+    const itemId = idSchema.parse((req.params as any).id);
 
-    return activateItem({ userId, id: params.id });
-  });
+    // 1) valida se item existe
+    const item = await prisma.item.findUnique({ where: { id: itemId } });
+    if (!item) {
+      throw new AppError({
+        status: 404,
+        code: "ITEM_NOT_FOUND",
+        error: "NOT_FOUND",
+        message: "Item não encontrado.",
+      });
+    }
 
-  // PATCH /api/items/:id/deactivate
-  app.patch('/items/:id/deactivate', async (req) => {
-    requireAuth(req);
+    // 2) REGRA: não inativar se houver despesas vinculadas
+    const vinculadas = await prisma.expense.count({
+      where: { itemId }, // ajuste se sua tabela chama "despesa" / "expenses"
+    });
 
-    const params = idParamSchema.parse(req.params);
-    const userId = req.user!.id;
+    if (vinculadas > 0) {
+      throw new AppError({
+        status: 409,
+        code: "ITEM_HAS_EXPENSES",
+        error: "BUSINESS_ERROR",
+        message: "Não é possível inativar: existe despesa vinculada.",
+      });
+    }
 
-    return deactivateItem({ userId, id: params.id });
+    // 3) inativa
+    const updated = await prisma.item.update({
+      where: { id: itemId },
+      data: { ativo: false },
+    });
+
+    return reply.send(updated);
   });
 }
