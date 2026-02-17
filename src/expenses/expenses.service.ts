@@ -78,7 +78,7 @@ export async function listMonthlyExpenses(params: {
       itemId: any; 
       item: { nome: any; }; 
       descricao: any; 
-      bancoCode: number; 
+      bancoCode: number | null; 
       valorCents: number; 
     }) => ({
     id: e.id,
