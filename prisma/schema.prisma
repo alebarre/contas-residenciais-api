@@ -8,14 +8,15 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(uuid())
-  nome         String
-  email        String   @unique
-  passwordHash String
-  telefone     String?
-  avatarUrl    String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                  String @id @default(uuid())
+  nome                String
+  email               String   @unique
+  passwordHash        String
+  telefone            String?
+  avatarUrl           String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  passwordResetTokens PasswordResetToken[] 
 
   items        Item[]
   expenses     Expense[]
@@ -77,3 +78,20 @@ model BankCatalogCache {
   updatedAt DateTime
   dataJson  Json
 }
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String
+  codeHash  String
+  expiresAt DateTime @db.Timestamptz(3)
+  usedAt    DateTime? @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([usedAt])
+}
+
+

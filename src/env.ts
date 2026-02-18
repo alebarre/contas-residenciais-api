@@ -10,7 +10,14 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(16),
   JWT_EXPIRES_IN: z.string().default('8h'),
 
-  DATABASE_URL: z.string().min(1)
+  DATABASE_URL: z.string().min(1),
+
+  // SMTP (opcional)
+  SMTP_HOST: z.string().default(''),
+  SMTP_PORT: z.coerce.number().int().positive().optional(),
+  SMTP_USER: z.string().default(''),
+  SMTP_PASS: z.string().default(''),
+  SMTP_FROM: z.string().default(''),
 });
 
 export const env = envSchema.parse(process.env);
