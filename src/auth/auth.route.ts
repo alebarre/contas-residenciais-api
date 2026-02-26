@@ -181,8 +181,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       }
     });
 
-    // envio real (se SMTP configurado)
-    // se não estiver, faz fallback em log (para dev)
+    // envio real com SMTP configurado.
     const smtpConfigured =
       !!env.SMTP_HOST && !!env.SMTP_PORT && !!env.SMTP_USER && !!env.SMTP_PASS && !!env.SMTP_FROM;
 

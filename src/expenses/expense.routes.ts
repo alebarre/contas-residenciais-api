@@ -1,28 +1,29 @@
-import type { FastifyInstance } from 'fastify';
-import { z } from 'zod';
-import { requireAuth } from '../auth/require-auth';
+import type { FastifyInstance } from "fastify";
+import { z } from "zod";
+import { requireAuth } from "../auth/require-auth";
 import {
   createExpenseSchema,
   monthQuerySchema,
   paymentSchema,
-  updateExpenseSchema
-} from './expense.schemas';
+  updateExpenseSchema,
+} from "./expense.schemas";
 import {
   createExpense,
   deleteExpense,
   listMonthlyExpenses,
   updateExpense,
-  updatePayment
-} from './expenses.service';
-import { AppError } from '../errors/app-error';
+  updatePayment,
+} from "./expenses.service";
+import { AppError } from "../errors/app-error";
+import { prisma } from "../db";
 
 const idParamSchema = z.object({
-  id: z.string().uuid()
+  id: z.string().uuid(),
 });
 
 export async function expenseRoutes(app: FastifyInstance) {
   // GET /api/expenses?month=YYYY-MM&itemId=&paid=
-  app.get('/expenses', async (req) => {
+  app.get("/expenses", async (req) => {
     requireAuth(req);
 
     const query = monthQuerySchema.parse(req.query);
@@ -32,18 +33,18 @@ export async function expenseRoutes(app: FastifyInstance) {
       userId,
       month: query.month,
       itemId: query.itemId,
-      paid: query.paid
+      paid: query.paid,
     });
   });
 
   // POST /api/expenses
-  app.post('/expenses', async (req, rep) => {
+  app.post("/expenses", async (req, rep) => {
     requireAuth(req);
 
     const body = createExpenseSchema.parse(req.body);
     const userId = req.user!.id;
 
-    const item = await prisma?.item.findUnique({ where: { id: body.itemId } });
+    const item = await prisma.item.findUnique({ where: { id: body.itemId } });
 
     if (!item) {
       throw new AppError({
@@ -65,34 +66,60 @@ export async function expenseRoutes(app: FastifyInstance) {
 
     const created = await createExpense({
       userId,
-      dataVencimento: body.dataVencimento,
-      dataPagamento: body.dataPagamento ?? null,
       itemId: body.itemId,
       descricao: body.descricao,
+      valor: body.valor,
+      dataVencimento: body.dataVencimento,
       bancoCode: body.bancoCode ?? null,
-      valor: body.valor
     });
 
-    return rep.code(201).send(created);
+    rep.code(201);
+    return created;
   });
 
-  // PATCH /api/expenses/:id
-  app.patch('/expenses/:id', async (req) => {
+  // PUT /api/expenses/:id
+  app.put("/expenses/:id", async (req) => {
     requireAuth(req);
 
     const params = idParamSchema.parse(req.params);
     const body = updateExpenseSchema.parse(req.body);
     const userId = req.user!.id;
 
+    const item = await prisma.item.findUnique({ where: { id: body.itemId } });
+
+    if (!item) {
+      throw new AppError({
+        status: 404,
+        code: "ITEM_NOT_FOUND",
+        error: "NOT_FOUND",
+        message: "Item não encontrado.",
+      });
+    }
+
+    if (!item.ativo) {
+      throw new AppError({
+        status: 409,
+        code: "ITEM_INACTIVE",
+        error: "BUSINESS_ERROR",
+        message: "Não é possível atualizar despesa com item inativo.",
+      });
+    }
+
     return updateExpense({
       userId,
       id: params.id,
-      data: body
+      data: {
+        itemId: body.itemId,
+        descricao: body.descricao,
+        valor: body.valor,
+        dataVencimento: body.dataVencimento,
+        bancoCode: body.bancoCode ?? null,
+      },
     });
   });
 
-  // PATCH /api/expenses/:id/payment
-  app.patch('/expenses/:id/payment', async (req) => {
+  // PUT /api/expenses/:id/payment
+  app.put("/expenses/:id/payment", async (req) => {
     requireAuth(req);
 
     const params = idParamSchema.parse(req.params);
@@ -102,18 +129,18 @@ export async function expenseRoutes(app: FastifyInstance) {
     return updatePayment({
       userId,
       id: params.id,
-      dataPagamento: body.dataPagamento
+      dataPagamento: body.dataPagamento ?? null,
     });
   });
 
   // DELETE /api/expenses/:id
-  app.delete('/expenses/:id', async (req, rep) => {
+  app.delete("/expenses/:id", async (req, rep) => {
     requireAuth(req);
 
     const params = idParamSchema.parse(req.params);
     const userId = req.user!.id;
 
     await deleteExpense({ userId, id: params.id });
-    return rep.code(204).send();
+    rep.code(204);
   });
 }
