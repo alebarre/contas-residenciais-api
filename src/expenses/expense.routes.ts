@@ -22,7 +22,6 @@ const idParamSchema = z.object({
 });
 
 export async function expenseRoutes(app: FastifyInstance) {
-  // GET /api/expenses?month=YYYY-MM&itemId=&paid=
   app.get("/expenses", async (req) => {
     requireAuth(req);
 
@@ -37,7 +36,6 @@ export async function expenseRoutes(app: FastifyInstance) {
     });
   });
 
-  // POST /api/expenses
   app.post("/expenses", async (req, rep) => {
     requireAuth(req);
 
@@ -70,6 +68,7 @@ export async function expenseRoutes(app: FastifyInstance) {
       descricao: body.descricao,
       valor: body.valor,
       dataVencimento: body.dataVencimento,
+      dataPagamento: body.dataPagamento ?? null, // ✅ NOVO
       bancoCode: body.bancoCode ?? null,
     });
 
@@ -77,32 +76,35 @@ export async function expenseRoutes(app: FastifyInstance) {
     return created;
   });
 
-  // PUT /api/expenses/:id
-  app.put("/expenses/:id", async (req) => {
+  // ✅ handler único (PUT e PATCH)
+  const updateHandler = async (req: any) => {
     requireAuth(req);
 
     const params = idParamSchema.parse(req.params);
     const body = updateExpenseSchema.parse(req.body);
     const userId = req.user!.id;
 
-    const item = await prisma.item.findUnique({ where: { id: body.itemId } });
+    // ✅ valida item somente se itemId vier no payload
+    if (body.itemId) {
+      const item = await prisma.item.findUnique({ where: { id: body.itemId } });
 
-    if (!item) {
-      throw new AppError({
-        status: 404,
-        code: "ITEM_NOT_FOUND",
-        error: "NOT_FOUND",
-        message: "Item não encontrado.",
-      });
-    }
+      if (!item) {
+        throw new AppError({
+          status: 404,
+          code: "ITEM_NOT_FOUND",
+          error: "NOT_FOUND",
+          message: "Item não encontrado.",
+        });
+      }
 
-    if (!item.ativo) {
-      throw new AppError({
-        status: 409,
-        code: "ITEM_INACTIVE",
-        error: "BUSINESS_ERROR",
-        message: "Não é possível atualizar despesa com item inativo.",
-      });
+      if (!item.ativo) {
+        throw new AppError({
+          status: 409,
+          code: "ITEM_INACTIVE",
+          error: "BUSINESS_ERROR",
+          message: "Não é possível atualizar despesa com item inativo.",
+        });
+      }
     }
 
     return updateExpense({
@@ -113,12 +115,18 @@ export async function expenseRoutes(app: FastifyInstance) {
         descricao: body.descricao,
         valor: body.valor,
         dataVencimento: body.dataVencimento,
+        dataPagamento: body.dataPagamento,
         bancoCode: body.bancoCode ?? null,
       },
     });
-  });
+  };
 
-  // PUT /api/expenses/:id/payment
+  // ✅ mantém PUT (como já está no projeto)
+  app.put("/expenses/:id", updateHandler);
+
+  // ✅ adiciona PATCH por compatibilidade (evita 404 caso front use PATCH)
+  app.patch("/expenses/:id", updateHandler);
+
   app.put("/expenses/:id/payment", async (req) => {
     requireAuth(req);
 
@@ -133,7 +141,6 @@ export async function expenseRoutes(app: FastifyInstance) {
     });
   });
 
-  // DELETE /api/expenses/:id
   app.delete("/expenses/:id", async (req, rep) => {
     requireAuth(req);
 
