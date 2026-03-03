@@ -2,13 +2,14 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import helmet from '@fastify/helmet';
 import sensible from '@fastify/sensible';
 import swagger from '@fastify/swagger';
-import swaggerUI from '@fastify/swagger-ui'; 
+import swaggerUI from '@fastify/swagger-ui';
 
 import { env } from './env';
 import { registerCors } from './plugins/cors';
 import { healthRoutes } from './routes/health.route';
 
 import { registerErrorHandler } from './plugins/error-handler';
+import { registerAuth } from './auth/require-auth';
 
 import { authRoutes } from './auth/auth.route';
 import { meRoutes } from './me/me.route';
@@ -26,6 +27,7 @@ export function buildApp(): FastifyInstance {
   });
 
   registerErrorHandler(app);
+  registerAuth(app);
 
   app.register(helmet);
   app.register(sensible);

@@ -7,8 +7,16 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum PaymentMethod {
+  PIX
+  DINHEIRO
+  CREDITO
+  TRANSFERENCIA
+  OUTROS
+}
+
 model User {
-  id                  String @id @default(uuid())
+  id                  String   @id @default(uuid())
   nome                String
   email               String   @unique
   passwordHash        String
@@ -16,10 +24,10 @@ model User {
   avatarUrl           String?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
-  passwordResetTokens PasswordResetToken[] 
+  passwordResetTokens PasswordResetToken[]
 
-  items        Item[]
-  expenses     Expense[]
+  items         Item[]
+  expenses      Expense[]
   bankOverrides BankOverride[]
 }
 
@@ -33,15 +41,15 @@ model Item {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expenses  Expense[]
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expenses Expense[]
 
   @@index([userId])
   @@index([userId, ativo])
 }
 
 model Expense {
-  id             String   @id @default(uuid())
+  id             String        @id @default(uuid())
   userId         String
   itemId         String
   dataVencimento DateTime
@@ -49,11 +57,13 @@ model Expense {
   descricao      String
   bancoCode      Int?
   valorCents     Int
+  paymentMethod  PaymentMethod @default(OUTROS) // ✅ NOVO
+
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  item           Item     @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item Item @relation(fields: [itemId], references: [id], onDelete: Restrict)
 
   @@index([userId])
   @@index([userId, dataVencimento])
@@ -68,7 +78,7 @@ model BankOverride {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, code])
 }
@@ -80,18 +90,16 @@ model BankCatalogCache {
 }
 
 model PasswordResetToken {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   userId    String
   codeHash  String
-  expiresAt DateTime @db.Timestamptz(3)
+  expiresAt DateTime  @db.Timestamptz(3)
   usedAt    DateTime? @db.Timestamptz(3)
-  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([expiresAt])
   @@index([usedAt])
 }
-
-

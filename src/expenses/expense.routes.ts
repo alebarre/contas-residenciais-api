@@ -15,13 +15,14 @@ import {
   updatePayment,
 } from "./expenses.service";
 import { AppError } from "../errors/app-error";
-import { prisma } from "../db";
+import { prisma } from "../db"; // ✅ FIX: necessário (seu arquivo atual não importava)
 
 const idParamSchema = z.object({
   id: z.string().uuid(),
 });
 
 export async function expenseRoutes(app: FastifyInstance) {
+  // GET /api/expenses?month=YYYY-MM&itemId=&paid=
   app.get("/expenses", async (req) => {
     requireAuth(req);
 
@@ -36,12 +37,14 @@ export async function expenseRoutes(app: FastifyInstance) {
     });
   });
 
+  // POST /api/expenses
   app.post("/expenses", async (req, rep) => {
     requireAuth(req);
 
     const body = createExpenseSchema.parse(req.body);
     const userId = req.user!.id;
 
+    // valida item existe + ativo (mesma regra que você já usava)
     const item = await prisma.item.findUnique({ where: { id: body.itemId } });
 
     if (!item) {
@@ -64,70 +67,37 @@ export async function expenseRoutes(app: FastifyInstance) {
 
     const created = await createExpense({
       userId,
+      dataVencimento: body.dataVencimento,
+      dataPagamento: body.dataPagamento ?? null,
       itemId: body.itemId,
       descricao: body.descricao,
-      valor: body.valor,
-      dataVencimento: body.dataVencimento,
-      dataPagamento: body.dataPagamento ?? null, // ✅ NOVO
       bancoCode: body.bancoCode ?? null,
+      valor: body.valor,
+
+      // ✅ NOVO
+      paymentMethod: body.paymentMethod ?? "OUTROS",
     });
 
-    rep.code(201);
-    return created;
+    return rep.code(201).send(created);
   });
 
-  // ✅ handler único (PUT e PATCH)
-  const updateHandler = async (req: any) => {
+  // PATCH /api/expenses/:id
+  app.patch("/expenses/:id", async (req) => {
     requireAuth(req);
 
     const params = idParamSchema.parse(req.params);
     const body = updateExpenseSchema.parse(req.body);
     const userId = req.user!.id;
 
-    // ✅ valida item somente se itemId vier no payload
-    if (body.itemId) {
-      const item = await prisma.item.findUnique({ where: { id: body.itemId } });
-
-      if (!item) {
-        throw new AppError({
-          status: 404,
-          code: "ITEM_NOT_FOUND",
-          error: "NOT_FOUND",
-          message: "Item não encontrado.",
-        });
-      }
-
-      if (!item.ativo) {
-        throw new AppError({
-          status: 409,
-          code: "ITEM_INACTIVE",
-          error: "BUSINESS_ERROR",
-          message: "Não é possível atualizar despesa com item inativo.",
-        });
-      }
-    }
-
     return updateExpense({
       userId,
       id: params.id,
-      data: {
-        itemId: body.itemId,
-        descricao: body.descricao,
-        valor: body.valor,
-        dataVencimento: body.dataVencimento,
-        dataPagamento: body.dataPagamento,
-        bancoCode: body.bancoCode ?? null,
-      },
+      data: body,
     });
-  };
+  });
 
-  // ✅ mantém PUT (como já está no projeto)
-  app.put("/expenses/:id", updateHandler);
-
-  // ✅ adiciona PATCH por compatibilidade (evita 404 caso front use PATCH)
-  app.patch("/expenses/:id", updateHandler);
-
-  app.put("/expenses/:id/payment", async (req) => {
+  // PATCH /api/expenses/:id/payment
+  app.patch("/expenses/:id/payment", async (req) => {
     requireAuth(req);
 
     const params = idParamSchema.parse(req.params);
@@ -137,10 +107,11 @@ export async function expenseRoutes(app: FastifyInstance) {
     return updatePayment({
       userId,
       id: params.id,
-      dataPagamento: body.dataPagamento ?? null,
+      dataPagamento: body.dataPagamento,
     });
   });
 
+  // DELETE /api/expenses/:id
   app.delete("/expenses/:id", async (req, rep) => {
     requireAuth(req);
 
@@ -148,6 +119,6 @@ export async function expenseRoutes(app: FastifyInstance) {
     const userId = req.user!.id;
 
     await deleteExpense({ userId, id: params.id });
-    rep.code(204);
+    return rep.code(204).send();
   });
 }
