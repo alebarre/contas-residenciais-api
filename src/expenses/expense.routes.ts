@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireAuth } from "../auth/require-auth";
 import {
   createExpenseSchema,
+  yearQuerySchema,
   monthQuerySchema,
   paymentSchema,
   updateExpenseSchema,
@@ -10,6 +11,7 @@ import {
 import {
   createExpense,
   deleteExpense,
+  getAnualExpenses,
   listMonthlyExpenses,
   updateExpense,
   updatePayment,
@@ -26,9 +28,15 @@ export async function expenseRoutes(app: FastifyInstance) {
   app.get("/expenses", async (req) => {
     requireAuth(req);
 
+    // Verifica se é consulta anual (year) ou mensal (month)
+    const parsedQuery = yearQuerySchema.safeParse(req.query);
+    if(parsedQuery.success && parsedQuery.data.year) {
+      const userId = req.user!.id;
+      return getAnualExpenses({ userId, year: parsedQuery.data.year });
+    }
+
     const query = monthQuerySchema.parse(req.query);
     const userId = req.user!.id;
-
     return listMonthlyExpenses({
       userId,
       month: query.month,
@@ -37,7 +45,7 @@ export async function expenseRoutes(app: FastifyInstance) {
     });
   });
 
-  // POST /api/expenses
+    // POST /api/expenses
   app.post("/expenses", async (req, rep) => {
     requireAuth(req);
 

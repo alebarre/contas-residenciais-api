@@ -99,6 +99,40 @@ export async function listMonthlyExpenses(params: {
   }));
 }
 
+export async function getAnualExpenses( params: {
+  userId: string;
+  year: string;
+}): Promise<ExpenseReadDTO[]> {
+
+  const start = new Date(Number(params.year), 0, 1, 0, 0, 0, 0);
+  const end = new Date(Number(params.year) + 1, 0, 1, 0, 0, 0, 0);
+  const expenses = await prisma.expense.findMany({
+    where: {
+      userId: params.userId,
+      dataVencimento: { gte: start, lt: end },  
+    },
+    include: { item: true },
+    orderBy: [{ dataVencimento: "asc" }, { createdAt: "asc" }],
+  });
+
+  const catalog = await getCatalog();
+  const bankNameMap = new Map<number, string>();
+  for (const b of catalog) bankNameMap.set(b.code, b.name);
+
+  return expenses.map((e: any) => ({
+    id: e.id,
+    dataVencimento: formatDateOnly(e.dataVencimento),
+    dataPagamento: e.dataPagamento ? formatDateOnly(e.dataPagamento) : null,
+    itemId: e.itemId,
+    itemNome: e.item.nome,
+    descricao: e.descricao,
+    bancoCode: e.bancoCode ?? null,
+    bancoPagamento: e.bancoCode ? (bankNameMap.get(e.bancoCode) ?? null) : null,
+    valor: fromCents(e.valorCents),
+    paymentMethod: (e.paymentMethod ?? "OUTROS") as PaymentMethod,
+  }));
+}
+
 export async function createExpense(params: {
   userId: string;
   dataVencimento: string;

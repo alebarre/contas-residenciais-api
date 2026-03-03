@@ -21,6 +21,10 @@ export const monthQuerySchema = z.object({
     }),
 });
 
+export const yearQuerySchema = z.object({
+  year: z.string().regex(/^\d{4}$/, "year deve ser YYYY"),
+});
+
 export const createExpenseSchema = z.object({
   dataVencimento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   dataPagamento: z
