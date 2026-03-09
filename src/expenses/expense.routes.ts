@@ -78,7 +78,7 @@ export async function expenseRoutes(app: FastifyInstance) {
       dataVencimento: body.dataVencimento,
       dataPagamento: body.dataPagamento ?? null,
       itemId: body.itemId,
-      descricao: body.descricao,
+      descricao: body.descricao ?? "",
       bancoCode: body.bancoCode ?? null,
       valor: body.valor,
 

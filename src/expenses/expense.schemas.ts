@@ -33,11 +33,9 @@ export const createExpenseSchema = z.object({
     .nullable()
     .optional(),
   itemId: z.string().uuid(),
-  descricao: z.string().min(2).max(255),
+  descricao: z.string().min(2).max(255).nullable().optional(),
   bancoCode: z.number().int().positive().nullable().optional(),
   valor: z.number(),
-
-  // ✅ NOVO
   paymentMethod: paymentMethodSchema.optional(),
 });
 
@@ -53,11 +51,9 @@ export const updateExpenseSchema = z
       .nullable()
       .optional(),
     itemId: z.string().uuid().optional(),
-    descricao: z.string().min(2).max(255).optional(),
+    descricao: z.string().max(255),
     bancoCode: z.number().int().positive().nullable().optional(),
     valor: z.number().optional(),
-
-    // ✅ NOVO
     paymentMethod: paymentMethodSchema.optional(),
   })
   .refine((v) => Object.keys(v).length > 0, {

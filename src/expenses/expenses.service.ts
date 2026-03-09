@@ -217,7 +217,7 @@ export async function updateExpense(params: {
     dataVencimento?: string;
     dataPagamento?: string | null;
     itemId?: string;
-    descricao?: string;
+    descricao?: string | null;
     bancoCode?: number | null;
     valor?: number;
 
@@ -267,37 +267,27 @@ export async function updateExpense(params: {
     }
   }
 
+  const updateData: any = {};
+  if (params.data.dataVencimento !== undefined)
+    updateData.dataVencimento = parseDateOnly(params.data.dataVencimento);
+  if (params.data.dataPagamento !== undefined)
+    updateData.dataPagamento = params.data.dataPagamento
+      ? parseDateOnly(params.data.dataPagamento)
+      : null;
+  if (params.data.itemId !== undefined)
+    updateData.itemId = params.data.itemId;
+  if (params.data.descricao !== undefined)
+    updateData.descricao = params.data.descricao ?? null;
+  if (params.data.bancoCode !== undefined)
+    updateData.bancoCode = params.data.bancoCode;
+  if (params.data.valor !== undefined)
+    updateData.valorCents = toCents(params.data.valor);
+  if (params.data.paymentMethod !== undefined)
+    updateData.paymentMethod = params.data.paymentMethod as any;
+
   const updated = await prisma.expense.update({
     where: { id: params.id },
-    data: {
-      ...(params.data.dataVencimento !== undefined
-        ? { dataVencimento: parseDateOnly(params.data.dataVencimento) }
-        : {}),
-      ...(params.data.dataPagamento !== undefined
-        ? {
-            dataPagamento: params.data.dataPagamento
-              ? parseDateOnly(params.data.dataPagamento)
-              : null,
-          }
-        : {}),
-      ...(params.data.itemId !== undefined
-        ? { itemId: params.data.itemId }
-        : {}),
-      ...(params.data.descricao !== undefined
-        ? { descricao: params.data.descricao }
-        : {}),
-      ...(params.data.bancoCode !== undefined
-        ? { bancoCode: params.data.bancoCode }
-        : {}),
-      ...(params.data.valor !== undefined
-        ? { valorCents: toCents(params.data.valor) }
-        : {}),
-
-      // ✅ NOVO (se não vier, não altera)
-      ...(params.data.paymentMethod !== undefined
-        ? { paymentMethod: params.data.paymentMethod as any }
-        : {}),
-    },
+    data: updateData,
     include: { item: true },
   });
 
@@ -314,7 +304,7 @@ export async function updateExpense(params: {
       : null,
     itemId: updated.itemId,
     itemNome: updated.item.nome,
-    descricao: updated.descricao,
+    descricao: updated.descricao ?? null,
     bancoCode: updated.bancoCode ?? null,
     bancoPagamento,
     valor: fromCents(updated.valorCents),
