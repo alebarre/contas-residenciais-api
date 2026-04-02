@@ -6,7 +6,7 @@
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
-"scripts": {
+  "scripts": {
     "dev": "tsx watch src/server.ts",
     "debug": "node --inspect -r tsx/cjs src/server.ts",
     "build": "prisma generate && tsc -p tsconfig.json",
@@ -30,7 +30,7 @@
     "dotenv": "^16.4.5",
     "fastify": "^5.0.0",
     "jsonwebtoken": "^9.0.2",
-    "nodemailer": "^8.0.1",
+    "resend": "^6.10.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {

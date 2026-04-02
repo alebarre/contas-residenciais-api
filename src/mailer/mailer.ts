@@ -1,4 +1,4 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import { env } from "../env";
 
 type SendParams = {
@@ -7,14 +7,8 @@ type SendParams = {
   text: string;
 };
 
-function hasSmtpConfigured(): boolean {
-  return !!(
-    env.SMTP_HOST &&
-    env.SMTP_PORT &&
-    env.SMTP_USER &&
-    env.SMTP_PASS &&
-    env.SMTP_FROM
-  );
+function hasEmailConfigured(): boolean {
+  return !!(env.RESEND_API_KEY && env.MAIL_FROM);
 }
 
 export async function sendMail({
@@ -22,28 +16,17 @@ export async function sendMail({
   subject,
   text,
 }: SendParams): Promise<void> {
-  if (!hasSmtpConfigured()) {
-    console.log(`[MAILER] SMTP não configurado. Email para: ${to}`);
+  if (!hasEmailConfigured()) {
+    console.log(`[MAILER] Resend não configurado. Email para: ${to}`);
     console.log(`[MAILER] Subject: ${subject}`);
     console.log(`[MAILER] Content:\n${text}`);
     return;
   }
 
-  const transporter = nodemailer.createTransport({
-    host: env.SMTP_HOST,
-    port: env.SMTP_PORT ?? 587,
-    secure: (env.SMTP_PORT ?? 587) === 465,
-    auth: {
-      user: env.SMTP_USER,
-      pass: env.SMTP_PASS,
-    },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 10000,
-  });
+  const resend = new Resend(env.RESEND_API_KEY);
 
-  await transporter.sendMail({
-    from: env.SMTP_FROM,
+  await resend.emails.send({
+    from: env.MAIL_FROM,
     to,
     subject,
     text,
