@@ -186,15 +186,15 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       !!env.SMTP_HOST && !!env.SMTP_PORT && !!env.SMTP_USER && !!env.SMTP_PASS && !!env.SMTP_FROM;
 
     if (smtpConfigured) {
-      await sendMail({
-        to: user.email,
-        subject: 'Código de Reset de Senha',
-        text: `Olá ${user.nome},\n\nSeu código de reset de senha é: ${code}\n\nEste código expira em 5 minutos.`
-      });
-    } else {
-      // fallback dev: não quebra fluxo local
-      // eslint-disable-next-line no-console
-      console.log('[FORGOT] SMTP não configurado. Código para', user.email, '=>', code);
+      try {
+        await sendMail({
+          to: user.email,
+          subject: "Código de Reset de Senha",
+          text: `Olá ${user.nome},\n\nSeu código de reset de senha é: ${code}\n\nEste código expira em 5 minutos.`,
+        });
+      } catch (err) {
+        req.log.error({ err }, "Falha ao enviar email de reset");
+      }
     }
 
     return reply.status(204).send();
