@@ -45,12 +45,12 @@ export type ExpenseReadDTO = {
   dataPagamento: string | null;
   itemId: string;
   itemNome: string;
-  descricao: string;
+  descricao: string | null;
   bancoCode: number | null;
   bancoPagamento: string | null;
   valor: number;
 
-  // ✅ NOVO
+  // NOVO
   paymentMethod: PaymentMethod;
 };
 
@@ -89,7 +89,7 @@ export async function listMonthlyExpenses(params: {
     dataPagamento: e.dataPagamento ? formatDateOnly(e.dataPagamento) : null,
     itemId: e.itemId,
     itemNome: e.item.nome,
-    descricao: e.descricao,
+    descricao: e.descricao ?? null,
     bancoCode: e.bancoCode ?? null,
     bancoPagamento: e.bancoCode ? (bankNameMap.get(e.bancoCode) ?? null) : null,
     valor: fromCents(e.valorCents),
@@ -125,7 +125,7 @@ export async function getAnualExpenses( params: {
     dataPagamento: e.dataPagamento ? formatDateOnly(e.dataPagamento) : null,
     itemId: e.itemId,
     itemNome: e.item.nome,
-    descricao: e.descricao,
+    descricao: e.descricao ?? null,
     bancoCode: e.bancoCode ?? null,
     bancoPagamento: e.bancoCode ? (bankNameMap.get(e.bancoCode) ?? null) : null,
     valor: fromCents(e.valorCents),
@@ -138,11 +138,11 @@ export async function createExpense(params: {
   dataVencimento: string;
   dataPagamento?: string | null;
   itemId: string;
-  descricao: string;
+  descricao: string | null;
   bancoCode?: number | null;
   valor: number;
 
-  // ✅ NOVO (mantém robusto com default)
+  // Create
   paymentMethod?: PaymentMethod;
 }): Promise<ExpenseReadDTO> {
   // valida item pertence ao usuário
@@ -180,11 +180,11 @@ export async function createExpense(params: {
       dataPagamento: params.dataPagamento
         ? parseDateOnly(params.dataPagamento)
         : null,
-      descricao: params.descricao,
+      descricao: params.descricao ?? "",
       bancoCode: params.bancoCode ?? null,
       valorCents: toCents(params.valor),
 
-      // ✅ NOVO
+      // NOVO
       paymentMethod: (params.paymentMethod ?? "OUTROS") as any,
     },
     include: { item: true },
@@ -200,12 +200,12 @@ export async function createExpense(params: {
       : null,
     itemId: created.itemId,
     itemNome: created.item.nome,
-    descricao: created.descricao,
+    descricao: created.descricao ?? null,
     bancoCode: created.bancoCode ?? null,
     bancoPagamento,
     valor: fromCents(created.valorCents),
 
-    // ✅ NOVO
+    // NOVO
     paymentMethod: (created.paymentMethod ?? "OUTROS") as PaymentMethod,
   };
 }
@@ -221,7 +221,7 @@ export async function updateExpense(params: {
     bancoCode?: number | null;
     valor?: number;
 
-    // ✅ NOVO
+    // NOVO
     paymentMethod?: PaymentMethod;
   };
 }): Promise<ExpenseReadDTO> {
@@ -309,7 +309,7 @@ export async function updateExpense(params: {
     bancoPagamento,
     valor: fromCents(updated.valorCents),
 
-    // ✅ NOVO
+    // NOVO
     paymentMethod: (updated.paymentMethod ?? "OUTROS") as PaymentMethod,
   };
 }
@@ -355,7 +355,7 @@ export async function updatePayment(params: {
       : null,
     itemId: updated.itemId,
     itemNome: updated.item.nome,
-    descricao: updated.descricao,
+    descricao: updated.descricao ?? null,
     bancoCode: updated.bancoCode ?? null,
     bancoPagamento,
     valor: fromCents(updated.valorCents),
