@@ -33,7 +33,7 @@ export const createExpenseSchema = z.object({
     .nullable()
     .optional(),
   itemId: z.string().uuid(),
-  descricao: z.string().min(2).max(255).nullable().optional(),
+  descricao: z.string().max(255).nullable().optional(),
   bancoCode: z.number().int().positive().nullable().optional(),
   valor: z.number(),
   paymentMethod: paymentMethodSchema.optional(),
@@ -51,7 +51,7 @@ export const updateExpenseSchema = z
       .nullable()
       .optional(),
     itemId: z.string().uuid().optional(),
-    descricao: z.string().max(255),
+    descricao: z.string().max(255).nullable().optional(),
     bancoCode: z.number().int().positive().nullable().optional(),
     valor: z.number().optional(),
     paymentMethod: paymentMethodSchema.optional(),
