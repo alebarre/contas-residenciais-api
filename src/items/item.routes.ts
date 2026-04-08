@@ -26,7 +26,7 @@ const idSchema = z.string().uuid();
 
 export async function itemRoutes(app: FastifyInstance) {
   // GET /api/items?onlyActive=false&tipo=SERVICO
-  app.get('/items', async (req) => {
+  app.get("/items", async (req) => {
     requireAuth(req);
 
     const query = listItemsQuerySchema.parse(req.query);
@@ -34,27 +34,30 @@ export async function itemRoutes(app: FastifyInstance) {
 
     // valida "tipo" se veio, reaproveitando enum por segurança
     const tipo = query.tipo?.toUpperCase();
-    if (tipo && !['EMPRESA', 'PROFISSIONAL', 'SERVICO', 'DESPESA'].includes(tipo)) {
+    if (
+      tipo &&
+      !["EMPRESA", "PROFISSIONAL", "SERVICO", "DESPESA"].includes(tipo)
+    ) {
       // deixa cair no handler padrão com fieldErrors
-      throw new (await import('zod')).ZodError([
+      throw new (await import("zod")).ZodError([
         {
-          code: 'custom',
-          path: ['tipo'],
-          message: 'Tipo inválido',
-          fatal: false
-        } as any
+          code: "custom",
+          path: ["tipo"],
+          message: "Tipo inválido",
+          fatal: false,
+        } as any,
       ]);
     }
 
     return listItems({
       userId,
       onlyActive: query.onlyActive ?? false,
-      tipo
+      tipo,
     });
   });
 
   // POST /api/items
-  app.post('/items', async (req, reply) => {
+  app.post("/items", async (req, reply) => {
     requireAuth(req);
 
     const body = createItemSchema.parse(req.body);
@@ -64,7 +67,7 @@ export async function itemRoutes(app: FastifyInstance) {
       userId,
       tipo: body.tipo,
       nome: body.nome,
-      atividade: body.atividade
+      atividade: body.atividade,
     });
 
     return reply.code(201).send(item);
@@ -72,14 +75,31 @@ export async function itemRoutes(app: FastifyInstance) {
 
   const idSchema = z.string().uuid();
 
+  const updateItemSchema = z
+    .object({
+      tipo: z.enum(["EMPRESA", "PROFISSIONAL", "SERVICO"]).optional(),
+      nome: z.string().min(2).max(120).optional(),
+      atividade: z.string().min(2).max(120).optional(),
+    })
+    .refine((v) => Object.keys(v).length > 0, {
+      message: "Informe ao menos um campo para atualizar.",
+    });
+    
   // PATCH /api/items/:id
-  app.patch("/items/:id/activate", async (req, reply) => {
+  app.patch("/items/:id", async (req, reply) => {
     requireAuth(req);
 
     const itemId = idSchema.parse((req.params as any).id);
+    const userId = req.user!.id;
 
-    const item = await prisma.item.findUnique({ where: { id: itemId } });
-    if (!item) {
+    const body = updateItemSchema.parse(req.body);
+
+    // ✅ ownership
+    const existing = await prisma.item.findFirst({
+      where: { id: itemId, userId },
+    });
+
+    if (!existing) {
       throw new AppError({
         status: 404,
         code: "ITEM_NOT_FOUND",
@@ -90,13 +110,17 @@ export async function itemRoutes(app: FastifyInstance) {
 
     const updated = await prisma.item.update({
       where: { id: itemId },
-      data: { ativo: true },
+      data: {
+        ...(body.tipo !== undefined ? { tipo: body.tipo } : {}),
+        ...(body.nome !== undefined ? { nome: body.nome } : {}),
+        ...(body.atividade !== undefined ? { atividade: body.atividade } : {}),
+      },
     });
 
     return reply.send(updated);
   });
 
-  // PATCH /api/items/:id
+  // PATCH /api/items/:id/deactivate
   app.patch("/items/:id/deactivate", async (req, reply) => {
     requireAuth(req);
 
